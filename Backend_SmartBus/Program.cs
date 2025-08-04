@@ -1,5 +1,4 @@
-﻿
-using Backend_SmartBus.Services;
+﻿using Backend_SmartBus.Services;
 using Microsoft.EntityFrameworkCore;
 using SmartBus_BusinessObjects.Models;
 
@@ -22,16 +21,14 @@ namespace Backend_SmartBus
             builder.Services.AddScoped<TicketService>();
             builder.Services.AddScoped<StatisticService>();
 
-
-
             // Add services to the container.
-
             builder.Services.AddControllers()
-     .AddJsonOptions(options =>
-     {
-         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-         options.JsonSerializerOptions.PropertyNamingPolicy = null;
-     });
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+                    options.JsonSerializerOptions.PropertyNamingPolicy = null;
+                });
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -39,19 +36,19 @@ namespace Backend_SmartBus
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            // Di chuyển app.UseSwagger() và app.UseSwaggerUI() ra ngoài khối if để chúng luôn được bật.
+            // if (app.Environment.IsDevelopment())
+            // {
+            //    app.UseSwagger();
+            //    app.UseSwaggerUI();
+            // }
+
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
-
             app.MapControllers();
-
             app.Run();
         }
     }
