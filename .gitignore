@@ -1,0 +1,24 @@
+# Visual Studio files
+.vs/
+*.vsix*
+*.suo
+
+# Build artifacts
+[Bb]in/
+[Oo]bj/
+
+# Packages
+packages/
+
+# Test results
+TestResults/
+
+# Log files
+*.log
+
+# User settings
+*.user
+*.userosf
+
+# Other
+*.bak
