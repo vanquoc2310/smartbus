@@ -48,7 +48,8 @@
                 Email = user.Email,
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                ImageUrl = user.ImageUrl
             };
         }
 

@@ -28,7 +28,8 @@
             new Claim("id", user.Id.ToString()),
             new Claim("email", user.Email),
             new Claim("name", user.FullName),
-            new Claim("role", user.Role?.RoleName ?? "User")
+            new Claim("role", user.Role?.RoleName ?? "User"),
+            new Claim("image", user.ImageUrl ?? string.Empty) // Thêm claim ImageUrl vào đây
         };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));

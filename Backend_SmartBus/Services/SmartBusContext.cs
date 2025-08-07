@@ -20,6 +20,8 @@ public partial class SmartBusContext : DbContext
 
     public virtual DbSet<BusVehicleLocation> BusVehicleLocations { get; set; }
 
+    public virtual DbSet<PaymentOrder> PaymentOrders { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<RouteSchedule> RouteSchedules { get; set; }
@@ -82,6 +84,22 @@ public partial class SmartBusContext : DbContext
             entity.HasOne(d => d.Route).WithMany(p => p.BusVehicleLocations)
                 .HasForeignKey(d => d.RouteId)
                 .HasConstraintName("FK__BusVehicl__Route__31EC6D26");
+        });
+
+        modelBuilder.Entity<PaymentOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PaymentO__3214EC07BE14E1B7");
+
+            entity.ToTable("PaymentOrder");
+
+            entity.HasIndex(e => e.OrderCode, "UQ__PaymentO__999B5229CB0B8346").IsUnique();
+
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasMaxLength(50);
         });
 
         modelBuilder.Entity<Role>(entity =>

@@ -1,4 +1,5 @@
-﻿using Backend_SmartBus.Services;
+﻿using Backend_SmartBus.Configs;
+using Backend_SmartBus.Services;
 using Microsoft.EntityFrameworkCore;
 using SmartBus_BusinessObjects.Models;
 
@@ -13,12 +14,15 @@ namespace Backend_SmartBus
             builder.Services.AddDbContext<SmartBusContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectionStringDB")));
 
+            builder.Services.Configure<PayOSConfig>(builder.Configuration.GetSection("PayOS"));
+
             // Đăng ký các service
             builder.Services.AddSingleton<OtpService>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<BusRouteService>();
             builder.Services.AddScoped<TicketService>();
+            builder.Services.AddScoped<PaymentService>();
             builder.Services.AddScoped<StatisticService>();
 
             // Add services to the container.
