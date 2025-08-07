@@ -83,6 +83,7 @@ namespace Backend_SmartBus.Services
                     ExpiredAt = t.ExpiredAt,
                     RemainingUses = t.RemainingUses,
                     TicketTypeName = t.TicketType.Name,
+                    RouteId = t.RouteId, // Thêm dòng này để trả về RouteId
                     RouteName = t.Route.RouteName
                 })
                 .ToListAsync();

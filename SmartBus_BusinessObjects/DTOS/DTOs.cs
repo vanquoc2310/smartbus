@@ -98,6 +98,7 @@ namespace SmartBus_BusinessObjects.DTOS
         public DateTime? ExpiredAt { get; set; }
         public int? RemainingUses { get; set; }
         public string TicketTypeName { get; set; }
+        public string RouteId { get; set; }
         public string RouteName { get; set; }
     }
 
