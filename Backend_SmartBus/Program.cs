@@ -53,6 +53,8 @@ namespace Backend_SmartBus
             app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
+            app.MapGet("/health", () => Results.Ok("ok"));
+
             app.Run();
         }
     }
