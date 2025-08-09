@@ -105,7 +105,26 @@ namespace SmartBus_BusinessObjects.DTOS
     }
 
 
+    public class TicketPurchaseItem
+    {
+        public string RouteId { get; set; }
+        public int TicketTypeId { get; set; }
+    }
+
     public class CreateTicketRequest
+    {
+        public int UserId { get; set; }
+        public List<TicketPurchaseItem> Items { get; set; }
+    }
+
+    public class PaymentSuccessResponse
+    {
+        public string TicketId { get; set; }
+        public string TicketType { get; set; }
+        public string RouteName { get; set; }
+    }
+
+    public class CreateTicketRequestForSingleTicket
     {
         public int UserId { get; set; }
         public string RouteId { get; set; }

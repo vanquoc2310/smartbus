@@ -31,34 +31,42 @@ namespace Backend_SmartBus.Services
             );
         }
 
-        public async Task<CreatePaymentResult> CreatePaymentLinkAsync(CreateTicketRequest request, decimal price)
+        public async Task<CreatePaymentResult> CreatePaymentLinkAsync(CreateTicketRequest request)
         {
-            // Tạo orderCode duy nhất bằng cách kết hợp timestamp và số ngẫu nhiên
-            var random = new Random();
-            var orderCodeString = DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + random.Next(100, 999).ToString();
+            var orderCodeString = DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + new Random().Next(100, 999).ToString();
             var orderCode = long.Parse(orderCodeString);
 
-            // PayOS yêu cầu giá trị tiền tệ là kiểu số nguyên, vì thế cần ép kiểu
-            int amount = (int)price;
+            var payosItems = new List<ItemData>();
+            decimal totalPrice = 0;
 
-            // Sử dụng các biến đã được gán giá trị từ PayOSConfig
+            foreach (var item in request.Items)
+            {
+                var priceEntry = await _context.RouteTicketPrices
+                    .FirstOrDefaultAsync(r => r.RouteId == item.RouteId && r.TicketTypeId == item.TicketTypeId);
+
+                if (priceEntry == null || priceEntry.Price == null)
+                    throw new Exception($"Không tìm thấy giá vé cho tuyến {item.RouteId} và loại vé {item.TicketTypeId}");
+
+                payosItems.Add(new ItemData($"Vé xe buýt tuyến {item.RouteId}, loại {item.TicketTypeId}", 1, (int)priceEntry.Price.Value));
+
+                totalPrice += priceEntry.Price.Value;
+            }
+
+            int amount = (int)totalPrice;
+
             var cancelUrl = _payOSConfig.CancelUrl;
             var returnUrl = _payOSConfig.ReturnUrl;
 
-            // Kiểm tra các URL trước khi sử dụng để tránh lỗi null
             if (string.IsNullOrEmpty(cancelUrl) || string.IsNullOrEmpty(returnUrl))
             {
-                throw new InvalidOperationException("CancelUrl or ReturnUrl is not configured.");
+                throw new InvalidOperationException("CancelUrl hoặc ReturnUrl chưa được cấu hình.");
             }
 
             var paymentData = new PaymentData(
                 orderCode,
                 amount,
                 $"Thanh toán SmartBus",
-                new List<ItemData>
-                {
-                    new ItemData("Vé xe buýt", 1, amount)
-                },
+                payosItems,
                 cancelUrl,
                 returnUrl
             );
@@ -78,14 +86,7 @@ namespace Backend_SmartBus.Services
             return createPaymentResult;
         }
 
-        public class PaymentSuccessResponse
-        {
-            public string TicketId { get; set; }
-            public string TicketType { get; set; }
-            public string RouteName { get; set; }
-        }
-
-        public async Task<PaymentSuccessResponse> HandleSuccessfulPayment(long orderCode)
+        public async Task<List<PaymentSuccessResponse>> HandleSuccessfulPayment(long orderCode)
         {
             var order = await _context.PaymentOrders.FirstOrDefaultAsync(o => o.OrderCode == orderCode);
             if (order == null || order.Status == "PAID") return null;
@@ -99,14 +100,27 @@ namespace Backend_SmartBus.Services
 
             var createTicketRequest = JsonSerializer.Deserialize<CreateTicketRequest>(order.TicketRequestJson);
 
-            var newTicketResponse = await _ticketService.CreateTicketAsync(createTicketRequest);
+            var successResponses = new List<PaymentSuccessResponse>();
 
-            return new PaymentSuccessResponse
+            foreach (var item in createTicketRequest.Items)
             {
-                TicketId = newTicketResponse.Qrcode,
-                TicketType = newTicketResponse.TicketTypeName,
-                RouteName = newTicketResponse.RouteName
-            };
+                var newTicketResponse = await _ticketService.CreateTicketAsync(new CreateTicketRequestForSingleTicket
+                {
+                    UserId = createTicketRequest.UserId,
+                    RouteId = item.RouteId,
+                    TicketTypeId = item.TicketTypeId
+                });
+
+                successResponses.Add(new PaymentSuccessResponse
+                {
+                    TicketId = newTicketResponse.Qrcode,
+                    TicketType = newTicketResponse.TicketTypeName,
+                    RouteName = newTicketResponse.RouteName
+                });
+            }
+
+            return successResponses;
         }
+
     }
 }

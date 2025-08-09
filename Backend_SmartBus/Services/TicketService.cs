@@ -26,20 +26,22 @@ namespace Backend_SmartBus.Services
                 .ToListAsync();
         }
 
-        public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequest request)
+        public async Task<TicketResponse> CreateTicketAsync(CreateTicketRequestForSingleTicket request)
         {
             var now = DateTime.UtcNow;
 
+            Console.WriteLine($"Received TicketTypeId: {request.TicketTypeId}"); // Thêm dòng này để in ra Id
             var ticketType = await _context.TicketTypes.FindAsync(request.TicketTypeId);
+
             if (ticketType == null)
                 throw new Exception("Ticket type not found");
 
             var priceEntry = await _context.RouteTicketPrices
-                .Include(r => r.Route) // Include Route để lấy tên tuyến
+                .Include(r => r.Route)
                 .FirstOrDefaultAsync(r => r.RouteId == request.RouteId && r.TicketTypeId == request.TicketTypeId);
 
-            if (priceEntry == null)
-                throw new Exception("Ticket price not found for this route and type");
+            if (priceEntry == null || priceEntry.Price == null)
+                throw new Exception("Ticket price not found or invalid for this route and type");
 
             var ticket = new Ticket
             {
@@ -51,7 +53,7 @@ namespace Backend_SmartBus.Services
                 ExpiredAt = ticketType.DurationDays.HasValue ? now.AddDays(ticketType.DurationDays.Value) : null,
                 RemainingUses = ticketType.MaxUses ?? (ticketType.IsUnlimited == true ? null : 1),
                 IsActive = true,
-                Price = priceEntry.Price
+                Price = priceEntry.Price.Value
             };
 
             _context.Tickets.Add(ticket);
