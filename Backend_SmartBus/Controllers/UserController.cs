@@ -30,10 +30,12 @@ namespace Backend_SmartBus.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(int id, [FromQuery] int? month = null)
         {
-            var user = await _userService.GetByIdAsync(id);
-            if (user == null) return NotFound();
+            var user = await _userService.GetByIdAsync(id, month);
+            if (user == null)
+                return NotFound();
+
             return Ok(user);
         }
 

@@ -37,10 +37,51 @@
             return (users, total);
         }
 
-        public async Task<UserDTO?> GetByIdAsync(int id)
+        public async Task<UserDTO?> GetByIdAsync(int id, int? month = null)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user == null) return null;
+
+            int filterMonth = month ?? DateTime.Now.Month;
+            int filterYear = DateTime.Now.Year;
+
+            // Lấy vé của user trong tháng, kèm thông tin tuyến
+            var tickets = await _context.Tickets
+                .Include(t => t.Route) // join sang BusRoute để lấy DistanceKm
+                .Where(t => t.UserId == id &&
+                            t.IssuedAt.HasValue &&
+                            t.IssuedAt.Value.Month == filterMonth &&
+                            t.IssuedAt.Value.Year == filterYear)
+                .ToListAsync();
+
+            // Km mỗi ngày (theo ngày phát hành vé)
+            var kmPerDay = tickets
+                .GroupBy(t => t.IssuedAt.Value.Day)
+                .Select(g => new DayKmDTO
+                {
+                    Day = g.Key,
+                    DistanceKm = g.Sum(x => x.Route.DistanceKm ?? 0)
+                })
+                .OrderBy(x => x.Day)
+                .ToList();
+
+            decimal totalKm = kmPerDay.Sum(x => x.DistanceKm);
+
+            // Số chuyến = số vé
+            int totalTrips = tickets.Count;
+
+            // Chuyến dài nhất
+            var longestTrip = tickets
+                .OrderByDescending(t => t.Route.DistanceKm)
+                .Select(t => new TripInfoDTO
+                {
+                    DistanceKm = t.Route.DistanceKm ?? 0,
+                    RouteName = t.Route.RouteName
+                })
+                .FirstOrDefault();
+
+            // Giảm CO₂: ví dụ 1 km = 0.055 kg CO₂
+            decimal co2Saved = Math.Round(totalKm * 0.055m, 2);
 
             return new UserDTO
             {
@@ -49,9 +90,18 @@
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
                 CreatedAt = user.CreatedAt,
-                ImageUrl = user.ImageUrl
+                ImageUrl = user.ImageUrl,
+
+                // Thống kê thêm
+                TotalKm = totalKm,
+                KmPerDay = kmPerDay,
+                TotalTrips = totalTrips,
+                LongestTrip = longestTrip,
+                Co2SavedKg = co2Saved
             };
         }
+
+
 
         public async Task<UserDTO> CreateAsync(User user)
         {
@@ -92,13 +142,19 @@
 
         public async Task<(bool success, string message)> DeleteAsync(int id)
         {
-            var user = await _context.Users.Include(u => u.Tickets).FirstOrDefaultAsync(u => u.Id == id);
-            if (user == null) return (false, "User not found");
-            if (user.Tickets.Any()) return (false, "Không thể xóa người dùng vì đã từng mua vé.");
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id);
 
-            _context.Users.Remove(user);
+            if (user == null)
+                return (false, "User not found");
+
+            // Xóa mềm (bất kể đã mua vé hay chưa)
+            user.IsActive = false;
+            _context.Users.Update(user);
             await _context.SaveChangesAsync();
-            return (true, "User deleted successfully");
+
+            return (true, "User đã được vô hiệu hóa (xóa mềm) thành công");
         }
+
     }
 }

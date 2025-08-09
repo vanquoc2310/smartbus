@@ -48,11 +48,16 @@
 
         public async Task<User> Authenticate(string email, string password)
         {
-            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+
             if (user == null || user.Password != password)
                 return null;
+
             return user;
         }
+
 
         public async Task<bool> SendOtpToEmail(string email)
         {

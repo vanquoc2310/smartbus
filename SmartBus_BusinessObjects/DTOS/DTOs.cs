@@ -33,12 +33,34 @@ namespace SmartBus_BusinessObjects.DTOS
 
     public class UserDTO
     {
+        // Thông tin cơ bản
         public int Id { get; set; }
         public string Email { get; set; }
         public string FullName { get; set; }
         public string PhoneNumber { get; set; }
         public DateTime? CreatedAt { get; set; }
         public string ImageUrl { get; set; }
+
+        // Thống kê chuyến đi
+        public decimal TotalKm { get; set; }
+        public List<DayKmDTO> KmPerDay { get; set; } = new List<DayKmDTO>();
+        public int TotalTrips { get; set; }
+        public TripInfoDTO LongestTrip { get; set; }
+        public decimal Co2SavedKg { get; set; }
+    }
+
+    // DTO phụ: thống kê km theo ngày
+    public class DayKmDTO
+    {
+        public int Day { get; set; }
+        public decimal DistanceKm { get; set; }
+    }
+
+    // DTO phụ: thông tin chuyến dài nhất
+    public class TripInfoDTO
+    {
+        public decimal DistanceKm { get; set; }
+        public string RouteName { get; set; }
     }
 
     public class BusRouteDTO

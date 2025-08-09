@@ -23,6 +23,8 @@ public partial class User
 
     public string ImageUrl { get; set; }
 
+    public bool IsActive { get; set; }
+
     public virtual Role Role { get; set; }
 
     public virtual ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
