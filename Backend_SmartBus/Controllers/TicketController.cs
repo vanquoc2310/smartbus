@@ -50,14 +50,14 @@ namespace Backend_SmartBus.Controllers
         }
 
         [HttpPost("use")]
-        public async Task<IActionResult> UseTicket([FromBody] int ticketId)
+        public async Task<IActionResult> UseTicket([FromBody] string qrcode)
         {
-            if (ticketId <= 0)
+            if (string.IsNullOrEmpty(qrcode))
             {
-                return BadRequest("TicketId không hợp lệ.");
+                return BadRequest("QR code không hợp lệ.");
             }
 
-            var (isSuccess, message) = await _service.UseTicketAsync(ticketId);
+            var (isSuccess, message) = await _service.UseTicketAsync(qrcode);
 
             if (isSuccess)
             {

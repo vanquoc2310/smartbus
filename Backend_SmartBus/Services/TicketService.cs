@@ -91,26 +91,26 @@ namespace Backend_SmartBus.Services
                 .ToListAsync();
         }
 
-        public async Task<(bool, string)> UseTicketAsync(int ticketId)
+        public async Task<(bool, string)> UseTicketAsync(string qrcode)
         {
-            // 1. Tìm vé và các thông tin liên quan
+            // 1. Find the ticket by its QR code and include related information
             var ticket = await _context.Tickets
                 .Include(t => t.TicketType)
-                .FirstOrDefaultAsync(t => t.Id == ticketId);
+                .FirstOrDefaultAsync(t => t.Qrcode == qrcode);
 
-            // 2. Kiểm tra vé có tồn tại không
+            // 2. Check if the ticket exists
             if (ticket == null)
             {
                 return (false, "Vé không tồn tại.");
             }
 
-            // 3. Kiểm tra vé có còn hoạt động không
+            // 3. Check if the ticket is active
             if (ticket.IsActive != true)
             {
                 return (false, "Vé không còn hoạt động.");
             }
 
-            // 4. Kiểm tra vé hết hạn chưa
+            // 4. Check ticket expiration
             if (ticket.ExpiredAt.HasValue && ticket.ExpiredAt.Value < DateTime.Now)
             {
                 ticket.IsActive = false;
@@ -118,53 +118,45 @@ namespace Backend_SmartBus.Services
                 return (false, "Vé đã hết hạn sử dụng.");
             }
 
-            // 5. Kiểm tra logic dựa trên loại vé
+            // 5. Logic for per-use tickets (MaxUses)
             var ticketType = ticket.TicketType;
-            if (ticketType != null)
+            if (ticketType != null && ticketType.MaxUses.HasValue && ticketType.MaxUses.Value > 0)
             {
-                // Lấy User Id để ghi vào log
-                var scannedBy = ticket.UserId.HasValue ? ticket.UserId.Value.ToString() : "N/A";
+                if (ticket.RemainingUses.HasValue && ticket.RemainingUses.Value > 0)
+                {
+                    // Decrement remaining uses and check if it's the last use
+                    ticket.RemainingUses--;
+                    if (ticket.RemainingUses == 0)
+                    {
+                        ticket.IsActive = false; // Deactivate the ticket after the last use
+                    }
 
-                if (ticketType.IsUnlimited == true)
-                {
-                    return await LogTicketUsage(ticket, true, scannedBy, "Vé không giới hạn. Sử dụng thành công.");
+                    // Get User ID for logging
+                    var scannedBy = ticket.UserId.HasValue ? ticket.UserId.Value.ToString() : "N/A";
+
+                    return await LogTicketUsage(ticket, true, scannedBy, $"Vé theo lượt. Sử dụng thành công. Còn {ticket.RemainingUses} lượt.");
                 }
-                else if (ticketType.DurationDays.HasValue && ticketType.DurationDays.Value > 0)
+                else
                 {
-                    return await LogTicketUsage(ticket, true, scannedBy, "Vé theo ngày. Sử dụng thành công.");
-                }
-                else if (ticketType.MaxUses.HasValue && ticketType.MaxUses.Value > 0)
-                {
-                    if (ticket.RemainingUses.HasValue && ticket.RemainingUses.Value > 0)
-                    {
-                        ticket.RemainingUses--;
-                        if (ticket.RemainingUses == 0)
-                        {
-                            ticket.IsActive = false;
-                        }
-                        return await LogTicketUsage(ticket, true, scannedBy, $"Vé theo lượt. Sử dụng thành công. Còn {ticket.RemainingUses} lượt.");
-                    }
-                    else
-                    {
-                        ticket.IsActive = false;
-                        await _context.SaveChangesAsync();
-                        return (false, "Vé đã hết lượt sử dụng.");
-                    }
+                    ticket.IsActive = false;
+                    await _context.SaveChangesAsync();
+                    return (false, "Vé đã hết lượt sử dụng.");
                 }
             }
 
-            return (false, "Không xác định được loại vé.");
+            // Handle other ticket types if they exist, or return an error
+            return (false, "Loại vé không hợp lệ hoặc không xác định.");
         }
 
         private async Task<(bool, string)> LogTicketUsage(Ticket ticket, bool isValid, string scannedBy, string message)
         {
-            // 6. Ghi lại lịch sử sử dụng
+            // 6. Log the ticket usage
             var usageLog = new TicketUsageLog
             {
                 TicketId = ticket.Id,
                 ScannedAt = DateTime.Now,
                 ScannedBy = scannedBy,
-                Location = "N/A", // <-- Đặt giá trị mặc định cho location
+                Location = "N/A",
                 IsValidScan = isValid
             };
 
