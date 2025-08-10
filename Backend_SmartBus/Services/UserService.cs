@@ -128,6 +128,7 @@
             user.FullName = updatedUser.FullName;
             user.PhoneNumber = updatedUser.PhoneNumber;
             user.Email = updatedUser.Email;
+            user.ImageUrl = updatedUser.ImageUrl;
 
             await _context.SaveChangesAsync();
 

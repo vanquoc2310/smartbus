@@ -163,6 +163,11 @@ namespace SmartBus_BusinessObjects.DTOS
         public decimal Value { get; set; }
     }
 
+    public class QrCodeDto
+    {
+        public string Qrcode { get; set; }
+    }
+
 
 
 }

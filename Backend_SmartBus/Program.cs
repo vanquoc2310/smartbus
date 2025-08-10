@@ -16,6 +16,8 @@ namespace Backend_SmartBus
 
             builder.Services.Configure<PayOSConfig>(builder.Configuration.GetSection("PayOS"));
 
+            builder.Services.AddHttpClient();
+
             // Đăng ký các service
             builder.Services.AddSingleton<OtpService>();
             builder.Services.AddScoped<AuthService>();
