@@ -120,7 +120,7 @@
             };
         }
 
-        public async Task<UserDTO?> UpdateAsync(int id, User updatedUser)
+        public async Task<UserDTO?> UpdateAsync(int id, UserUpdateDTO updatedUser)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null) return null;

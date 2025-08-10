@@ -1,5 +1,6 @@
 ﻿using Backend_SmartBus.Services;
 using Microsoft.AspNetCore.Mvc;
+using SmartBus_BusinessObjects.DTOS;
 using SmartBus_BusinessObjects.Models;
 
 namespace Backend_SmartBus.Controllers
@@ -47,10 +48,15 @@ namespace Backend_SmartBus.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, User updatedUser)
+        public async Task<IActionResult> Update(int id, [FromBody] UserUpdateDTO updatedUser)
         {
             var user = await _userService.UpdateAsync(id, updatedUser);
-            if (user == null) return NotFound();
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
             return Ok(user);
         }
 
