@@ -48,5 +48,25 @@ namespace Backend_SmartBus.Controllers
             var tickets = await _service.GetUserTicketsAsync(userId);
             return Ok(tickets);
         }
+
+        [HttpPost("use")]
+        public async Task<IActionResult> UseTicket([FromBody] int ticketId)
+        {
+            if (ticketId <= 0)
+            {
+                return BadRequest("TicketId không hợp lệ.");
+            }
+
+            var (isSuccess, message) = await _service.UseTicketAsync(ticketId);
+
+            if (isSuccess)
+            {
+                return Ok(new { success = true, message = message });
+            }
+            else
+            {
+                return BadRequest(new { success = false, message = message });
+            }
+        }
     }
 }
