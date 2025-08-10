@@ -25,6 +25,17 @@ namespace Backend_SmartBus
             builder.Services.AddScoped<PaymentService>();
             builder.Services.AddScoped<StatisticService>();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin()
+                               .AllowAnyMethod()
+                               .AllowAnyHeader();
+                    });
+            });
+
             // Add services to the container.
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
@@ -51,6 +62,10 @@ namespace Backend_SmartBus
             app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
+
+            // Use the CORS policy
+            app.UseCors("AllowAll");
+
             app.UseAuthorization();
             app.MapControllers();
             app.MapGet("/health", () => Results.Ok("ok"));
