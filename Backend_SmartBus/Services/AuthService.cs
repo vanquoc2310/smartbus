@@ -78,7 +78,8 @@
                 FullName = req.FullName,
                 PhoneNumber = req.PhoneNumber,
                 CreatedAt = DateTime.UtcNow,
-                RoleId = _context.Roles.FirstOrDefault(r => r.RoleName == "User")?.Id
+                RoleId = _context.Roles.FirstOrDefault(r => r.RoleName == "User")?.Id,
+                IsActive = true
             };
 
             _context.Users.Add(newUser);
