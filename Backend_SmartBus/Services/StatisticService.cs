@@ -52,99 +52,185 @@ namespace Backend_SmartBus.Services
         }
 
         private Task<List<StatisticResult>> GroupByTimeRangeAsync<T>(
-    IQueryable<T> query,
-    Expression<Func<T, DateTime>> dateSelector,
-    TimeRange range,
-    Expression<Func<T, decimal>>? valueSelector = null)
+     IQueryable<T> query,
+     Expression<Func<T, DateTime>> dateSelector,
+     TimeRange range,
+     Expression<Func<T, decimal>>? valueSelector = null)
         {
             var compiledDateSelector = dateSelector.Compile();
             var compiledValueSelector = valueSelector?.Compile();
             var now = DateTime.UtcNow;
 
+            List<StatisticResult> results;
+
             switch (range)
             {
                 case TimeRange.Daily:
                     var today = now.Date;
-                    return Task.FromResult(
-                        query.AsEnumerable()
-                            .Where(e => compiledDateSelector(e).Date == today)
-                            .GroupBy(_ => today)
-                            .Select(g => new StatisticResult
-                            {
-                                Label = today.ToString("yyyy-MM-dd"),
-                                Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
-                            })
-                            .ToList()
-                    );
+                    results = query.AsEnumerable()
+                        .Where(e => compiledDateSelector(e).Date == today)
+                        .GroupBy(_ => today)
+                        .Select(g => new StatisticResult
+                        {
+                            Label = today.ToString("yyyy-MM-dd"),
+                            Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
+                        })
+                        .ToList();
+
+                    // Đảm bảo luôn có label hôm nay
+                    if (!results.Any())
+                    {
+                        results.Add(new StatisticResult
+                        {
+                            Label = today.ToString("yyyy-MM-dd"),
+                            Value = 0
+                        });
+                    }
+                    break;
 
                 case TimeRange.Weekly:
                     var last7Days = now.AddDays(-6).Date;
-                    return Task.FromResult(
-                        query.AsEnumerable()
-                            .Where(e => compiledDateSelector(e).Date >= last7Days)
-                            .GroupBy(e => compiledDateSelector(e).Date)
-                            .Select(g => new StatisticResult
+                    var allDays = Enumerable.Range(0, 7).Select(i => last7Days.AddDays(i)).ToList();
+
+                    results = query.AsEnumerable()
+                        .Where(e => compiledDateSelector(e).Date >= last7Days)
+                        .GroupBy(e => compiledDateSelector(e).Date)
+                        .Select(g => new StatisticResult
+                        {
+                            Label = g.Key.ToString("yyyy-MM-dd"),
+                            Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
+                        })
+                        .ToList();
+
+                    // Bổ sung các ngày còn thiếu
+                    foreach (var day in allDays)
+                    {
+                        if (!results.Any(r => r.Label == day.ToString("yyyy-MM-dd")))
+                        {
+                            results.Add(new StatisticResult
                             {
-                                Label = g.Key.ToString("yyyy-MM-dd"),
-                                Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
-                            })
-                            .OrderByDescending(r => r.Label)
-                            .ToList()
-                    );
+                                Label = day.ToString("yyyy-MM-dd"),
+                                Value = 0
+                            });
+                        }
+                    }
+
+                    results = results.OrderBy(r => r.Label).ToList();
+                    break;
 
                 case TimeRange.Monthly:
-                    var fourWeeksAgo = now.AddDays(-27).Date; // 4 tuần ~ 28 ngày
-                    return Task.FromResult(
-                        query.AsEnumerable()
-                            .Where(e => compiledDateSelector(e).Date >= fourWeeksAgo)
-                            .GroupBy(e =>
+                    var fourWeeksAgo = now.AddDays(-27).Date;
+                    var weekNumbers = Enumerable.Range(0, 4)
+                        .Select(i => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                            fourWeeksAgo.AddDays(i * 7),
+                            CalendarWeekRule.FirstFourDayWeek,
+                            DayOfWeek.Monday))
+                        .Distinct()
+                        .ToList();
+
+                    results = query.AsEnumerable()
+                        .Where(e => compiledDateSelector(e).Date >= fourWeeksAgo)
+                        .GroupBy(e =>
+                        {
+                            var date = compiledDateSelector(e);
+                            var ci = CultureInfo.CurrentCulture;
+                            return ci.Calendar.GetWeekOfYear(date, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                        })
+                        .Select(g => new StatisticResult
+                        {
+                            Label = $"Tuần {g.Key}",
+                            Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
+                        })
+                        .ToList();
+
+                    // Bổ sung tuần thiếu
+                    foreach (var week in weekNumbers)
+                    {
+                        if (!results.Any(r => r.Label == $"Tuần {week}"))
+                        {
+                            results.Add(new StatisticResult
                             {
-                                var date = compiledDateSelector(e);
-                                var ci = CultureInfo.CurrentCulture;
-                                return ci.Calendar.GetWeekOfYear(date, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-                            })
-                            .Select(g => new StatisticResult
-                            {
-                                Label = $"Tuần {g.Key}",
-                                Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
-                            })
-                            .OrderByDescending(r => r.Label)
-                            .ToList()
-                    );
+                                Label = $"Tuần {week}",
+                                Value = 0
+                            });
+                        }
+                    }
+
+                    results = results.OrderBy(r => r.Label).ToList();
+                    break;
 
                 case TimeRange.Last6Months:
-                    var sixMonthsAgo = now.AddMonths(-5); // Bao gồm cả tháng hiện tại
-                    return Task.FromResult(
-                        query.AsEnumerable()
-                            .Where(e => compiledDateSelector(e).Date >= new DateTime(sixMonthsAgo.Year, sixMonthsAgo.Month, 1))
-                            .GroupBy(e => new { compiledDateSelector(e).Year, compiledDateSelector(e).Month })
-                            .Select(g => new StatisticResult
+                    var sixMonthsAgo = now.AddMonths(-5);
+                    var allMonths = Enumerable.Range(0, 6)
+                        .Select(i => new { Month = sixMonthsAgo.AddMonths(i).Month, Year = sixMonthsAgo.AddMonths(i).Year })
+                        .ToList();
+
+                    results = query.AsEnumerable()
+                        .Where(e => compiledDateSelector(e).Date >= new DateTime(sixMonthsAgo.Year, sixMonthsAgo.Month, 1))
+                        .GroupBy(e => new { compiledDateSelector(e).Year, compiledDateSelector(e).Month })
+                        .Select(g => new StatisticResult
+                        {
+                            Label = $"Tháng {g.Key.Month}/{g.Key.Year}",
+                            Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
+                        })
+                        .ToList();
+
+                    // Bổ sung tháng thiếu
+                    foreach (var m in allMonths)
+                    {
+                        var label = $"Tháng {m.Month}/{m.Year}";
+                        if (!results.Any(r => r.Label == label))
+                        {
+                            results.Add(new StatisticResult
                             {
-                                Label = $"Tháng {g.Key.Month}/{g.Key.Year}",
-                                Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
-                            })
-                            .OrderByDescending(r => r.Label)
-                            .ToList()
-                    );
+                                Label = label,
+                                Value = 0
+                            });
+                        }
+                    }
+
+                    results = results.OrderBy(r => r.Label).ToList();
+                    break;
 
                 case TimeRange.Yearly:
                     var startOfYear = new DateTime(now.Year, 1, 1);
-                    return Task.FromResult(
-                        query.AsEnumerable()
-                            .Where(e => compiledDateSelector(e).Date >= startOfYear)
-                            .GroupBy(e => compiledDateSelector(e).Month)
-                            .Select(g => new StatisticResult
+                    var allYearMonths = Enumerable.Range(1, 12)
+                        .Where(m => new DateTime(now.Year, m, 1) <= now)
+                        .ToList();
+
+                    results = query.AsEnumerable()
+                        .Where(e => compiledDateSelector(e).Date >= startOfYear)
+                        .GroupBy(e => compiledDateSelector(e).Month)
+                        .Select(g => new StatisticResult
+                        {
+                            Label = $"Tháng {g.Key}/{now.Year}",
+                            Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
+                        })
+                        .ToList();
+
+                    // Bổ sung tháng thiếu
+                    foreach (var m in allYearMonths)
+                    {
+                        var label = $"Tháng {m}/{now.Year}";
+                        if (!results.Any(r => r.Label == label))
+                        {
+                            results.Add(new StatisticResult
                             {
-                                Label = $"Tháng {g.Key}/{now.Year}",
-                                Value = compiledValueSelector == null ? g.Count() : g.Sum(compiledValueSelector)
-                            })
-                            .OrderByDescending(r => r.Label)
-                            .ToList()
-                    );
+                                Label = label,
+                                Value = 0
+                            });
+                        }
+                    }
+
+                    results = results.OrderBy(r => r.Label).ToList();
+                    break;
 
                 default:
-                    return Task.FromResult(new List<StatisticResult>());
+                    results = new List<StatisticResult>();
+                    break;
             }
+
+            return Task.FromResult(results);
         }
 
 
