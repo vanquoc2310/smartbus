@@ -40,6 +40,9 @@ namespace SmartBus_BusinessObjects.DTOS
         public string PhoneNumber { get; set; }
         public DateTime? CreatedAt { get; set; }
         public string ImageUrl { get; set; }
+        public int? RoleId { get; set; }
+        public bool IsActive { get; set; }
+
 
         // Thống kê chuyến đi
         public decimal TotalKm { get; set; }

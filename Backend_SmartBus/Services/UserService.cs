@@ -31,7 +31,9 @@
                     Email = u.Email,
                     FullName = u.FullName,
                     PhoneNumber = u.PhoneNumber,
-                    CreatedAt = u.CreatedAt
+                    CreatedAt = u.CreatedAt,
+                    RoleId = u.RoleId,
+                    IsActive = u.IsActive,
                 }).ToListAsync();
 
             return (users, total);
