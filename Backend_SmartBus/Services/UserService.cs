@@ -20,6 +20,7 @@
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(u => u.FullName.Contains(search));
 
+
             var total = await query.CountAsync();
 
             var users = await query
