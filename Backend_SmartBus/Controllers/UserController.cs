@@ -41,9 +41,9 @@ namespace Backend_SmartBus.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(User user)
+        public async Task<IActionResult> Create([FromBody] UserUpdateDTO userCreationDto)
         {
-            var result = await _userService.CreateAsync(user);
+            var result = await _userService.CreateAsync(userCreationDto);
             return Ok(result);
         }
 
