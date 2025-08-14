@@ -176,6 +176,7 @@ namespace SmartBus_BusinessObjects.DTOS
         public string ImageUrl { get; set; }
     }
 
+
     public class TopSellingRouteDto
     {
         public string RouteName { get; set; }

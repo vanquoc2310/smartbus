@@ -103,9 +103,19 @@
 
 
 
-        public async Task<UserDTO> CreateAsync(User user)
+        public async Task<UserDTO> CreateAsync(UserUpdateDTO userCreationDto)
         {
-            user.CreatedAt = DateTime.UtcNow;
+            var user = new User
+            {
+                Email = userCreationDto.Email,
+                FullName = userCreationDto.FullName,
+                PhoneNumber = userCreationDto.PhoneNumber,
+                ImageUrl = userCreationDto.ImageUrl,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+                RoleId = 2
+            };
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
