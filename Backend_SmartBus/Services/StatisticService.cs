@@ -36,20 +36,24 @@ namespace Backend_SmartBus.Services
             return await GroupByTimeRangeAsync(query, t => t.IssuedAt!.Value, request.Range, t => t.Price ?? 0);
         }
 
-        public async Task<List<StatisticResult>> GetTopSellingRoutesAsync(int top = 5)
+        public async Task<List<TopSellingRouteDto>> GetTopSellingRoutesAsync(int top = 5)
         {
             return await _context.Tickets
-                .Where(t => t.RouteId != null)
+                .Where(t => t.RouteId != null && t.Price != null)
                 .GroupBy(t => t.Route.RouteName)
-                .Select(g => new StatisticResult
+                .Select(g => new TopSellingRouteDto
                 {
+                    RouteName = g.Key,
                     Label = g.Key,
-                    Value = g.Count()
+                    TicketsSold = g.Sum(t => t.TicketTypeId == 3 ? 30 : 1),
+                    Value = g.Sum(t => t.TicketTypeId == 3 ? 30 : 1),
+                    Revenue = g.Sum(t => t.Price ?? 0)
                 })
-                .OrderByDescending(r => r.Value)
+                .OrderByDescending(r => r.TicketsSold)
                 .Take(top)
                 .ToListAsync();
         }
+
 
         private Task<List<StatisticResult>> GroupByTimeRangeAsync<T>(
      IQueryable<T> query,
