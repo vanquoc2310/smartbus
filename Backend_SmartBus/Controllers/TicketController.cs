@@ -25,6 +25,17 @@ namespace Backend_SmartBus.Controllers
             _httpClientFactory = httpClientFactory;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetTickets(
+    int pageNumber = 1,
+    int pageSize = 10,
+    string? search = null)
+        {
+            var result = await _service.GetAllTicketsAsync(pageNumber, pageSize, search);
+            return Ok(result);
+        }
+
+
         [HttpGet("route/{routeId}/ticket-types")]
         public async Task<IActionResult> GetTicketTypes(string routeId)
         {

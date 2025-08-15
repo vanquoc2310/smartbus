@@ -166,5 +166,51 @@ namespace Backend_SmartBus.Services
             return (isValid, message);
         }
 
+        public async Task<PagedResult<AllTicketsResponse>> GetAllTicketsAsync(
+    int pageNumber,
+    int pageSize,
+    string? search)
+        {
+            var query = _context.Tickets
+                .Include(t => t.User)
+                .Include(t => t.Route)
+                .AsQueryable();
+
+            // Tìm kiếm theo tên tuyến
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t => t.Route.RouteName.Contains(search));
+            }
+
+            var totalRecords = await query.CountAsync();
+
+            var tickets = await query
+                .OrderByDescending(t => t.IssuedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new AllTicketsResponse
+                {
+                    Qrcode = t.Qrcode,
+                    Price = t.Price,
+                    IssuedAt = t.IssuedAt,
+                    ExpiredAt = t.ExpiredAt,
+                    RemainingUses = t.RemainingUses,
+                    TicketTypeName = t.TicketType.Name,
+                    RouteId = t.RouteId,
+                    RouteName = t.Route.RouteName,
+                    CustomerName = t.User.FullName // thêm tên khách
+                })
+                .ToListAsync();
+
+            return new PagedResult<AllTicketsResponse>
+            {
+                TotalRecords = totalRecords,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                Data = tickets
+            };
+        }
+
+
     }
 }

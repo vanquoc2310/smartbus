@@ -189,6 +189,26 @@ namespace SmartBus_BusinessObjects.DTOS
         public decimal Revenue { get; set; }
     }
 
+    public class PagedResult<T>
+    {
+        public int TotalRecords { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public IEnumerable<T> Data { get; set; }
+    }
+
+    public class AllTicketsResponse
+    {
+        public string Qrcode { get; set; }
+        public decimal? Price { get; set; }
+        public DateTime? IssuedAt { get; set; }
+        public DateTime? ExpiredAt { get; set; }
+        public int? RemainingUses { get; set; }
+        public string TicketTypeName { get; set; }
+        public string RouteId { get; set; }
+        public string RouteName { get; set; }
+        public string CustomerName { get; set; } // mới thêm
+    }
 
 
 }
